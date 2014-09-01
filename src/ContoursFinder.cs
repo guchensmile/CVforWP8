@@ -877,6 +877,7 @@ namespace ShadowWithBack
         public List<Point> contours;
     }
 
+    #region see opencv source code
     // class and shape for match contours
     public class Moments
     {
@@ -1064,8 +1065,6 @@ namespace ShadowWithBack
                 }
             }
         }
-
-        #region see opencv source code
 
         //get Moment
         public static void getMoments(List<Point> contour, Moments moments)
