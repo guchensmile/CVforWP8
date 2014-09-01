@@ -324,7 +324,7 @@ namespace ShadowWithBack
 
         }
 
-        //找轮廓序列2
+        //utility fuction：Find Image src contour and draw contours in the dst, sequences contain contours
         public static void FindContours2(WriteableBitmap src, WriteableBitmap dst, List<List<Point>> sequences)
         {
             int height = src.PixelHeight;
@@ -413,332 +413,9 @@ namespace ShadowWithBack
             }//end of main while
 
         }
-	
-        /// <summary>
-        /// A Test Function 
-        /// </summary>
-        /// <param name="src">image src</param>
-        /// <param name="dst">image dst</param>
-        public static List<Point> TestMyContours(WriteableBitmap src,WriteableBitmap dst)
-        {
-            List<Point> sequence = findHandContour(src);
-            Rectangle rectangle = new Rectangle(0, 0, 0, 0);
-            
-			//paint the contour points white
-            foreach(Point p in sequence)
-            {
-                dst.SetPixel(p.x, p.y, whitepixel);
-            }
 
-			//
-            if(ContourBoundingRect(sequence,rectangle))
-            {
-                dst.DrawRectangle(rectangle.x, rectangle.y, rectangle.x + rectangle.width, rectangle.y + rectangle.height, whitepixel);
-            }
-
-            return sequence;
-        }
-
-        //use skin detect binary image(src) and frame-diff(diff) image to find hand center
-        public static void findHandCenter(WriteableBitmap src , WriteableBitmap diff , Point p , Rectangle rect)
-        {
-            List<List<Point>> sequences = new List<List<Point>>();
-
-            FindContours3(src, sequences);
-
-            int areaMax = 0;
-            int area = 0;
-
-            //p.copy(point);
-
-            foreach (List<Point> it in sequences)
-            {
-                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
-
-                if (it.Count < 20)
-                    continue;
-
-
-                if (ContourBoundingRect(it, rectangle))
-                {
-                    area = rectangle.width * rectangle.height;
-                    
-                    if( (area > areaMax)  && isRatioOK(diff,rectangle))
-                    {
-                       
-                        areaMax = area;
-                        p.x = rectangle.x + rectangle.width / 2;
-                        p.y = rectangle.y + rectangle.height / 2;
-                        rect.copy(rectangle);
-                    }                     
-                }
-            }// end of foreach
-        }
-
-		//
-        public static List<Point> findHandContour(WriteableBitmap src)
-        {
-            List<List<Point>> sequences = new List<List<Point>>();
-            List<Point> result = new List<Point>();
-            FindContours3(src, sequences);
-
-            double maxRatio = 0.0;
-
-
-            foreach (List<Point> it in sequences)
-            {
-                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
-
-                if (it.Count < 20)
-                    continue;
-
-                double perimeter = contourPerimeter(it);
-                double area = contourArea(it);
-                if(area>0&&perimeter>0)
-                {
-                    double ratio = area;
-                    if(ratio>maxRatio)
-                    {
-                        maxRatio = ratio;
-                        result = it;
-                    }
-                }
-            }// end of foreach
-            return result;
-        }
-
-		//
-        public static Rectangle findMaxRect(WriteableBitmap src)
-        {
-            Rectangle rect = new Rectangle(0, 0, 0, 0);
-            List<List<Point>> sequences = new List<List<Point>>();
-
-            FindContours3(src, sequences);
-
-            int areaMax = 0;
-            int area = 0;
-
-            foreach (List<Point> it in sequences)
-            {
-                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
-
-                if (it.Count < 20)
-                    continue;
-
-                if (ContourBoundingRect(it, rectangle))
-                {
-                    area = rectangle.width * rectangle.height;
-
-                    if (area > areaMax)
-                    {
-                        areaMax = area;
-                        rect.copy(rectangle);
-                    }
-                }
-            }// end of foreach
-
-            return rect;
-        }
-
-        private static bool isRatioOK(WriteableBitmap diff, Rectangle rectangle)
-        {
-            const double thresh = 0.3;
-            int cnt = 0;
-            int index = 0;
-            int value = 0;
-            for (int y = rectangle.y; y < rectangle.y + rectangle.height; y++)
-            {
-                for (int x = rectangle.x; x < rectangle.x + rectangle.width; x++) 
-                {
-                    index = y * diff.PixelWidth + x;
-                    value = diff.Pixels[index];
-                    if (value == whitepixel)
-                        cnt++;
-                }
-            } 
-
-            double ratio = (double)cnt / (rectangle.width * rectangle.height);
-            if (ratio > thresh)
-                return true;
-            else
-                return false;
-        }
-
-        public static WriteableBitmap clearOutRect(WriteableBitmap bmp,Rectangle rect)
-        {
-            int width = bmp.PixelWidth;
-            int height = bmp.PixelHeight;
-            WriteableBitmap bmpRet = new WriteableBitmap(width, height);
-            getBlackImge(bmpRet);
-
-            int dataIndexOrg = rect.y * width + rect.x;
-            int dataIndex = 0;
-            for(int j = 0 ; j < rect.height ; j++)
-            {
-                dataIndex = dataIndexOrg + width * j;
-                for(int i = 0 ; i < rect.width; i++ )
-                {
-                    bmpRet.Pixels[dataIndex] = bmp.Pixels[dataIndex];
-                    dataIndex++;
-                }
-            }
-
-            return bmpRet;
-
-        }
-
-        public static List<Point> findMaxSequence(WriteableBitmap src)
-        {
-            List<List<Point>> sequences = new List<List<Point>>();
-
-            FindContours3(src, sequences);
-
-            int areaMax = 0;
-            int area = 0;
-            List<Point> listRet = null;
-
-            foreach (List<Point> it in sequences)
-            {
-                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
-
-                if (it.Count < 20)
-                    continue;
-
-                if (ContourBoundingRect(it, rectangle))
-                {
-                    area = rectangle.width * rectangle.height;
-                    if (area > areaMax)
-                    {
-                        areaMax = area;
-                        listRet = it;
-            
-                    }
-                }
-            }// end of foreach
-
-            return listRet;
-        }
-
-        //get Black Image (the A Channel is 0,means transparent)
-        public static void getTransBlackImge(WriteableBitmap img)
-        {
-
-            for (int i = 0; i < img.Pixels.Length; i++)
-            {
-                img.Pixels[i]=transBlackPixel;
-            }
-        }
-
-		//get Black Image (the A Channel is 255,means black)
-        public static void getBlackImge(WriteableBitmap img)
-        {
-
-            for (int i = 0; i < img.Pixels.Length; i++)
-            {
-                img.Pixels[i] = blackpixel;
-            }
-        }
-
-		//thresholding the Image, some points are white in which is betweens low and high, otherwise black
-        public static void setThreshold(WriteableBitmap src, WriteableBitmap dst, byte low, byte high)
-        {
-            byte[] pixelsRet = new byte[4];
-            pixelsRet[3] = 255;
-            pixelsRet[2] = high;
-            pixelsRet[1] = high;
-            pixelsRet[0] = high;
-            int highpixel = BitConverter.ToInt32(pixelsRet, 0);
-
-            pixelsRet[3] = 255;
-            pixelsRet[2] = low;
-            pixelsRet[1] = low;
-            pixelsRet[0] = low;
-            int lowpixel = BitConverter.ToInt32(pixelsRet, 0);
-
-            long len = src.Pixels.Length;
-            for (int i = 0; i < len; i++)
-            {
-                int value = src.Pixels[i];
-                if (value < lowpixel || value > highpixel)
-                    dst.Pixels[i] = blackpixel;
-                else
-                    dst.Pixels[i] = whitepixel;
-            }
-        }
-
-		//
-        public static bool FindPoint3(WriteableBitmap imgSrc, Point point)
-        {
-
-            int height = imgSrc.PixelHeight;
-            int width = imgSrc.PixelWidth;
-
-            int dataIndex = 0;
-
-            for (int curY = 0; curY < height; curY++)
-            {
-                for (int curX = 0; curX < width; curX++)
-                {
-                    if (whitepixel == imgSrc.Pixels[dataIndex])
-                    {
-                        point.x = curX;
-                        point.y = curY;
-                        return true;
-                    }
-                    dataIndex++;
-                }
-            }
-
-            return false;
-        }
-
-        public static double contourPerimeter(List<Point> sequence)
-        {
-            double perimeter = 0.0;
-            int length = sequence.Count;
-            if(length>0)
-            {
-                int preX = sequence[0].x;
-                int preY = sequence[0].y;
-                for(int i=1;i<length;++i)
-                {
-                    int dx = sequence[i].x - preX;
-                    int dy = sequence[i].y - preY;
-                    perimeter+=Math.Sqrt(dx*dx+dy*dy);
-
-                    preX=sequence[i].x;
-                    preY=sequence[i].y;
-                }
-            }
-            return perimeter;
-        }
-
-        public static double contourArea(List<Point> sequence)
-        {
-            double area = 0.0;
-            double a00 = 0.0;
-            int xi_1,yi_1;
-            int length=sequence.Count;
-            if(length>0)
-            {
-                xi_1=sequence[0].x;
-                yi_1=sequence[0].y;
-                for(int i=1;i<length;++i)
-                {
-                    int dxy,xi,yi;
-                    xi=sequence[i].x;
-                    yi=sequence[i].y;
-                    dxy=xi_1*yi-xi*yi_1;
-                    a00+=dxy;
-
-                    xi_1=xi;
-                    yi_1=yi;
-                }
-                area=a00*0.5;
-            }
-            return Math.Abs(area);
-        }
-
+        //utility fuction：Find Image src contour sequences contain contour
+        //compare with FindContours, FindContours3 is more efficient
         public static void FindContours3(WriteableBitmap src, List<List<Point>> sequences)
         {
             int height = src.PixelHeight;
@@ -845,6 +522,336 @@ namespace ShadowWithBack
 
         }
 
+        /// <summary>
+        /// A Test Function 
+        /// </summary>
+        /// <param name="src">image src</param>
+        /// <param name="dst">image dst</param>
+        public static List<Point> TestMyContours(WriteableBitmap src,WriteableBitmap dst)
+        {
+            List<Point> sequence = findHandContour(src);
+            Rectangle rectangle = new Rectangle(0, 0, 0, 0);
+            
+			//paint the contour points white
+            foreach(Point p in sequence)
+            {
+                dst.SetPixel(p.x, p.y, whitepixel);
+            }
+
+			//
+            if(ContourBoundingRect(sequence,rectangle))
+            {
+                dst.DrawRectangle(rectangle.x, rectangle.y, rectangle.x + rectangle.width, rectangle.y + rectangle.height, whitepixel);
+            }
+
+            return sequence;
+        }
+
+        //use skin detect binary image(src) and frame-diff(diff) image to find hand center
+        public static void findHandCenter(WriteableBitmap src , WriteableBitmap diff , Point p , Rectangle rect)
+        {
+            List<List<Point>> sequences = new List<List<Point>>();
+
+            FindContours3(src, sequences);
+
+            int areaMax = 0;
+            int area = 0;
+
+            //p.copy(point);
+
+            foreach (List<Point> it in sequences)
+            {
+                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
+
+                if (it.Count < 20)
+                    continue;
+
+
+                if (ContourBoundingRect(it, rectangle))
+                {
+                    area = rectangle.width * rectangle.height;
+                    
+                    if( (area > areaMax)  && isRatioOK(diff,rectangle))
+                    {
+                       
+                        areaMax = area;
+                        p.x = rectangle.x + rectangle.width / 2;
+                        p.y = rectangle.y + rectangle.height / 2;
+                        rect.copy(rectangle);
+                    }                     
+                }
+            }// end of foreach
+        }
+
+        //ratio = area/perimeter, the maximum of ratio is supposed as HandContour
+        public static List<Point> findHandContour(WriteableBitmap src)
+        {
+            List<List<Point>> sequences = new List<List<Point>>();
+            List<Point> result = new List<Point>();
+            FindContours3(src, sequences);
+
+            double maxRatio = 0.0;
+
+
+            foreach (List<Point> it in sequences)
+            {
+                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
+
+                if (it.Count < 20)
+                    continue;
+
+                double perimeter = contourPerimeter(it);
+                double area = contourArea(it);
+                if(area>0&&perimeter>0)
+                {
+                    double ratio = area / perimeter;
+                    if(ratio>maxRatio)
+                    {
+                        maxRatio = ratio;
+                        result = it;
+                    }
+                }
+            }// end of foreach
+            return result;
+        }
+
+        //find Max rectangle of all the rectangle
+        public static Rectangle findMaxRect(WriteableBitmap src)
+        {
+            Rectangle rect = new Rectangle(0, 0, 0, 0);
+            List<List<Point>> sequences = new List<List<Point>>();
+
+            FindContours3(src, sequences);
+
+            int areaMax = 0;
+            int area = 0;
+
+            foreach (List<Point> it in sequences)
+            {
+                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
+
+                if (it.Count < 20)
+                    continue;
+
+                if (ContourBoundingRect(it, rectangle))
+                {
+                    area = rectangle.width * rectangle.height;
+
+                    if (area > areaMax)
+                    {
+                        areaMax = area;
+                        rect.copy(rectangle);
+                    }
+                }
+            }// end of foreach
+
+            return rect;
+        }
+
+        //count white pixel, compute ratio = cnt/rectangle's area and decide whether Image is effective
+        private static bool isRatioOK(WriteableBitmap diff, Rectangle rectangle)
+        {
+            const double thresh = 0.3;
+            int cnt = 0;
+            int index = 0;
+            int value = 0;
+            for (int y = rectangle.y; y < rectangle.y + rectangle.height; y++)
+            {
+                for (int x = rectangle.x; x < rectangle.x + rectangle.width; x++) 
+                {
+                    index = y * diff.PixelWidth + x;
+                    value = diff.Pixels[index];
+                    if (value == whitepixel)
+                        cnt++;
+                }
+            } 
+
+            double ratio = (double)cnt / (rectangle.width * rectangle.height);
+            if (ratio > thresh)
+                return true;
+            else
+                return false;
+        }
+
+        //get a Image with black color outside the rect
+        public static WriteableBitmap clearOutRect(WriteableBitmap bmp,Rectangle rect)
+        {
+            int width = bmp.PixelWidth;
+            int height = bmp.PixelHeight;
+            WriteableBitmap bmpRet = new WriteableBitmap(width, height);
+            getBlackImge(bmpRet);
+
+            int dataIndexOrg = rect.y * width + rect.x;
+            int dataIndex = 0;
+            for(int j = 0 ; j < rect.height ; j++)
+            {
+                dataIndex = dataIndexOrg + width * j;
+                for(int i = 0 ; i < rect.width; i++ )
+                {
+                    bmpRet.Pixels[dataIndex] = bmp.Pixels[dataIndex];
+                    dataIndex++;
+                }
+            }
+
+            return bmpRet;
+
+        }
+
+        //find the Max Sequence which has max outer Rectangle
+        public static List<Point> findMaxSequence(WriteableBitmap src)
+        {
+            List<List<Point>> sequences = new List<List<Point>>();
+
+            FindContours3(src, sequences);
+
+            int areaMax = 0;
+            int area = 0;
+            List<Point> listRet = null;
+
+            foreach (List<Point> it in sequences)
+            {
+                Rectangle rectangle = new Rectangle(0, 0, 0, 0);
+
+                if (it.Count < 20)
+                    continue;
+
+                if (ContourBoundingRect(it, rectangle))
+                {
+                    area = rectangle.width * rectangle.height;
+                    if (area > areaMax)
+                    {
+                        areaMax = area;
+                        listRet = it;
+            
+                    }
+                }
+            }// end of foreach
+
+            return listRet;
+        }
+
+        //get Black Image (the A Channel is 0,means transparent)
+        public static void getTransBlackImge(WriteableBitmap img)
+        {
+
+            for (int i = 0; i < img.Pixels.Length; i++)
+            {
+                img.Pixels[i]=transBlackPixel;
+            }
+        }
+
+		//get Black Image (the A Channel is 255,means black)
+        public static void getBlackImge(WriteableBitmap img)
+        {
+
+            for (int i = 0; i < img.Pixels.Length; i++)
+            {
+                img.Pixels[i] = blackpixel;
+            }
+        }
+
+		//thresholding the Image, some points are white in which is betweens low and high, otherwise black
+        public static void setThreshold(WriteableBitmap src, WriteableBitmap dst, byte low, byte high)
+        {
+            byte[] pixelsRet = new byte[4];
+            pixelsRet[3] = 255;
+            pixelsRet[2] = high;
+            pixelsRet[1] = high;
+            pixelsRet[0] = high;
+            int highpixel = BitConverter.ToInt32(pixelsRet, 0);
+
+            pixelsRet[3] = 255;
+            pixelsRet[2] = low;
+            pixelsRet[1] = low;
+            pixelsRet[0] = low;
+            int lowpixel = BitConverter.ToInt32(pixelsRet, 0);
+
+            long len = src.Pixels.Length;
+            for (int i = 0; i < len; i++)
+            {
+                int value = src.Pixels[i];
+                if (value < lowpixel || value > highpixel)
+                    dst.Pixels[i] = blackpixel;
+                else
+                    dst.Pixels[i] = whitepixel;
+            }
+        }
+
+        //is it exists white point in imgSrc
+        public static bool FindPoint3(WriteableBitmap imgSrc, Point point)
+        {
+            int height = imgSrc.PixelHeight;
+            int width = imgSrc.PixelWidth;
+
+            int dataIndex = 0;
+
+            for (int curY = 0; curY < height; curY++)
+            {
+                for (int curX = 0; curX < width; curX++)
+                {
+                    if (whitepixel == imgSrc.Pixels[dataIndex])
+                    {
+                        point.x = curX;
+                        point.y = curY;
+                        return true;
+                    }
+                    dataIndex++;
+                }
+            }
+
+            return false;
+        }
+
+        //compute the contour's perimeter
+        public static double contourPerimeter(List<Point> sequence)
+        {
+            double perimeter = 0.0;
+            int length = sequence.Count;
+            if(length>0)
+            {
+                int preX = sequence[0].x;
+                int preY = sequence[0].y;
+                for(int i=1;i<length;++i)
+                {
+                    int dx = sequence[i].x - preX;
+                    int dy = sequence[i].y - preY;
+                    perimeter+=Math.Sqrt(dx*dx+dy*dy);
+
+                    preX=sequence[i].x;
+                    preY=sequence[i].y;
+                }
+            }
+            return perimeter;
+        }
+
+        //compute the contour's Area
+        public static double contourArea(List<Point> sequence)
+        {
+            double area = 0.0;
+            double a00 = 0.0;
+            int xi_1,yi_1;
+            int length=sequence.Count;
+            if(length>0)
+            {
+                xi_1=sequence[0].x;
+                yi_1=sequence[0].y;
+                for(int i=1;i<length;++i)
+                {
+                    int dxy,xi,yi;
+                    xi=sequence[i].x;
+                    yi=sequence[i].y;
+                    dxy=xi_1*yi-xi*yi_1;
+                    a00+=dxy;
+
+                    xi_1=xi;
+                    yi_1=yi;
+                }
+                area=a00*0.5;
+            }
+            return Math.Abs(area);
+        }
+
+        //some useful color
         public static int whitepixel = BitConverter.ToInt32(new byte[] { 255,255,255,255 }, 0);
         public static int blackpixel = BitConverter.ToInt32(new byte[] { 0, 0, 0, 255 }, 0);
         public static int greenpixel = BitConverter.ToInt32(new byte[] { 0, 255, 0, 255 }, 0);
@@ -856,6 +863,7 @@ namespace ShadowWithBack
         public static int YellowPixel = BitConverter.ToInt32(new byte[] { 0, 165, 255, 255 }, 0);
     }// end of class
 
+    //
     public class ContourTemplate
     {
         public ContourTemplate()
@@ -910,11 +918,11 @@ namespace ShadowWithBack
             nu30 = mu30 * s3; nu21 = mu21 * s3; nu12 = mu12 * s3; nu03 = mu03 * s3;
         }
 
-        //! spatial moments
+        //spatial moments
         public double m00, m10, m01, m20, m11, m02, m30, m21, m12, m03;
-        //! central moments
+        //central moments
         public double mu20, mu11, mu02, mu30, mu21, mu12, mu03;
-        //! central normalized moments
+        //central normalized moments
         public double nu20, nu11, nu02, nu30, nu21, nu12, nu03;
         public double inv_sqrt_m00; /* m00 != 0 ? 1/sqrt(m00) : 0 */
     }
@@ -1057,7 +1065,9 @@ namespace ShadowWithBack
             }
         }
 
-		//get Moment
+        #region see opencv source code
+
+        //get Moment
         public static void getMoments(List<Point> contour, Moments moments)
         {
             contoursMoments(contour, moments);
@@ -1240,7 +1250,8 @@ namespace ShadowWithBack
 
             return result;
         }
-
+       
+        #endregion
     }// end of class
 
 }
